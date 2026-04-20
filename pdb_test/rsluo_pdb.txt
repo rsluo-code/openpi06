@@ -1,0 +1,40 @@
+======================  pdb 调试快速手册（常用命令）  ======================
+
+命令/快捷键              功能说明
+---------------------------------------------------------------------------
+h / help                查看帮助、命令说明
+q                      退出调试（quit）
+c                      继续运行程序直到下一个断点（continue）
+n                      执行下一行（不进入函数）（next）
+s                      进入当前行调用的函数内部（step into）
+r                      运行直到当前函数返回（step out / return）
+l                      查看当前行附近代码（list）
+l <line>               查看指定行附近代码
+l <start>,<end>        查看指定范围代码
+ll                     显示整个当前函数代码（longlist）
+p <expr>               打印表达式值（print）
+pp <expr>              美化打印表达式值（pretty-print）
+whatis <var>           查看变量的类型
+where / bt             显示当前调用栈（backtrace）
+u                      调用栈上移一层（up）——查看上层函数变量
+d                      调用栈下移一层（down）
+b <line>               在当前文件设置断点（break）
+b <file>:<line>        在指定文件设置断点
+b <func>               在某个函数入口设置断点
+b                      显示所有断点
+cl <num>               清除某个断点（clear）
+disable <num>         禁用某个断点（不删除）
+enable <num>          启用某个断点
+tbreak <loc>          临时断点（触发一次后自动删除）
+retval                查看函数返回值
+! <python code>        执行任意 Python 语句（如修改变量）
+interact               进入交互 Python shell，退出回到 pdb
+---------------------------------------------------------------------------
+常用技巧：
+- 在代码里插入：   import pdb; pdb.set_trace()
+- 启动调试：       python -m pdb your_script.py
+- 查看大变量：     pp variable
+- 检查对象属性：   p dir(obj)
+- 强制退出：       q（多次按下即可）
+
+=====================================================================

@@ -1,0 +1,1 @@
+python scripts/serve_policy.py policy:checkpoint --policy.config=linden_torch_SF --policy.dir=/DATA/disk2/1024_grasp_packages/code/pi0_code/openpi06/pi05_torch/linden_torch_SF_29-30-31-03-04-05-06-07_v3/sl_v4_1013/20000

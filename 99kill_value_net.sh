@@ -1,0 +1,1 @@
+pkill -f train_pytorch_valuenet.py

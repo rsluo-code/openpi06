@@ -1,0 +1,41 @@
+
+
+SL:
+  urdf_path: "/b3-mix03/sppro/permanent/wjxu22/codes/rlds_factory/piper_description/urdf/piper_description.urdf"
+  base_links: 
+    - base_link
+  tip_links: 
+    - link6
+  joint_names:
+    - "joint1"
+    - "joint2"
+    - "joint3"
+    - "joint4"
+    - "joint5"
+    - "joint6"
+
+
+LDT:
+  urdf_path: "/b3-mix03/sppro/permanent/wjxu22/codes/rlds_factory/linden_teleop_description/teleop_description/urdf/LindenBot_Teleop_description_FK.urdf"
+  base_links: 
+    - left_shoulder_base_link
+    - right_shoulder_base_link
+  tip_links: 
+    - left_gripper_ee_link
+    - right_gripper_ee_link
+  joint_names:
+    - "left_shoulder_pitch_joint"
+    - "left_shoulder_roll_joint"
+    - "left_shoulder_yaw_joint"
+    - "left_elbow_joint"
+    - "left_wrist_roll_joint"
+    - "left_wrist_yaw_joint"
+    - "left_wrist_pitch_joint"
+    - "right_shoulder_pitch_joint"
+    - "right_shoulder_roll_joint"
+    - "right_shoulder_yaw_joint"
+    - "right_elbow_joint"
+    - "right_wrist_roll_joint"
+    - "right_wrist_yaw_joint"
+    - "right_wrist_pitch_joint"
+    

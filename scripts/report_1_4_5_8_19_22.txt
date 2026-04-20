@@ -1,0 +1,117 @@
+Root: /wx-mix01/sppro/permanent/yuanzhang10/codes_rsluo/openpi06/z_bucket_csvs/20260204_5item_8dim
+Found local_rank dirs: 4
+Top ratio (high-value side): 30.00%
+
+================================================================================
+j = 1
+
+- finetuning_At: total_count=233390, unique_values=272, value_range=[-825, 790]
+  cutoff (top 30% reaches) = 30 (cum=73247/233390=31.38%, target=70017.0)
+
+- pretrain_At: total_count=233390, unique_values=1039, value_range=[-405, 808]
+  cutoff (top 30% reaches) = 116 (cum=70341/233390=30.14%, target=70017.0)
+
+- value_t: total_count=233390, unique_values=191, value_range=[-1000, -35]
+  cutoff (top 30% reaches) = -285 (cum=70293/233390=30.12%, target=70017.0)
+
+- value_tN: total_count=233390, unique_values=177, value_range=[-1000, -115]
+  cutoff (top 30% reaches) = -180 (cum=71827/233390=30.78%, target=70017.0)
+
+  [MERGED 4 kinds]
+  merged_total_count=933560, unique_values=1185, value_range=[-1000, 808]
+  merged_cutoff (top 30% reaches) = -1 (cum=283114/933560=30.33%, target=280068.0)
+
+================================================================================
+j = 4
+
+- finetuning_At: total_count=2721721, unique_values=321, value_range=[-837, 813]
+  cutoff (top 30% reaches) = 8 (cum=908876/2721721=33.39%, target=816516.3)
+
+- pretrain_At: total_count=2721721, unique_values=1330, value_range=[-805, 819]
+  cutoff (top 30% reaches) = 33 (cum=831056/2721721=30.53%, target=816516.3)
+
+- value_t: total_count=2721721, unique_values=193, value_range=[-1000, -35]
+  cutoff (top 30% reaches) = -275 (cum=822517/2721721=30.22%, target=816516.3)
+
+- value_tN: total_count=2721721, unique_values=175, value_range=[-1000, -115]
+  cutoff (top 30% reaches) = -210 (cum=820076/2721721=30.13%, target=816516.3)
+
+  [MERGED 4 kinds]
+  merged_total_count=10886884, unique_values=1474, value_range=[-1000, 819]
+  merged_cutoff (top 30% reaches) = -17 (cum=3319411/10886884=30.49%, target=3266065.2)
+
+================================================================================
+j = 5
+
+- finetuning_At: total_count=484262, unique_values=281, value_range=[-862, 843]
+  cutoff (top 30% reaches) = 28 (cum=148449/484262=30.65%, target=145278.6)
+
+- pretrain_At: total_count=484262, unique_values=1001, value_range=[-890, 514]
+  cutoff (top 30% reaches) = 73 (cum=146194/484262=30.19%, target=145278.6)
+
+- value_t: total_count=484262, unique_values=187, value_range=[-1000, -45]
+  cutoff (top 30% reaches) = -295 (cum=147359/484262=30.43%, target=145278.6)
+
+- value_tN: total_count=484262, unique_values=176, value_range=[-1000, -115]
+  cutoff (top 30% reaches) = -140 (cum=146109/484262=30.17%, target=145278.6)
+
+  [MERGED 4 kinds]
+  merged_total_count=1937048, unique_values=1182, value_range=[-1000, 843]
+  merged_cutoff (top 30% reaches) = -12 (cum=584244/1937048=30.16%, target=581114.4)
+
+================================================================================
+j = 8
+
+- finetuning_At: total_count=2104312, unique_values=333, value_range=[-927, 843]
+  cutoff (top 30% reaches) = 8 (cum=688218/2104312=32.71%, target=631293.6)
+
+- pretrain_At: total_count=2104312, unique_values=1277, value_range=[-890, 835]
+  cutoff (top 30% reaches) = 27 (cum=633509/2104312=30.11%, target=631293.6)
+
+- value_t: total_count=2104312, unique_values=193, value_range=[-1000, -35]
+  cutoff (top 30% reaches) = -275 (cum=633290/2104312=30.09%, target=631293.6)
+
+- value_tN: total_count=2104312, unique_values=175, value_range=[-1000, -115]
+  cutoff (top 30% reaches) = -220 (cum=685845/2104312=32.59%, target=631293.6)
+
+  [MERGED 4 kinds]
+  merged_total_count=8417248, unique_values=1459, value_range=[-1000, 843]
+  merged_cutoff (top 30% reaches) = -20 (cum=2530965/8417248=30.07%, target=2525174.4)
+
+================================================================================
+j = 19
+
+- finetuning_At: total_count=1617700, unique_values=337, value_range=[-914, 856]
+  cutoff (top 30% reaches) = 16 (cum=498796/1617700=30.83%, target=485310.0)
+
+- pretrain_At: total_count=1617700, unique_values=1364, value_range=[-779, 892]
+  cutoff (top 30% reaches) = 43 (cum=491508/1617700=30.38%, target=485310.0)
+
+- value_t: total_count=1617700, unique_values=191, value_range=[-1000, -30]
+  cutoff (top 30% reaches) = -275 (cum=494034/1617700=30.54%, target=485310.0)
+
+- value_tN: total_count=1617700, unique_values=180, value_range=[-1000, -105]
+  cutoff (top 30% reaches) = -200 (cum=486896/1617700=30.10%, target=485310.0)
+
+  [MERGED 4 kinds]
+  merged_total_count=6470800, unique_values=1527, value_range=[-1000, 892]
+  merged_cutoff (top 30% reaches) = -9 (cum=1979304/6470800=30.59%, target=1941240.0)
+
+================================================================================
+j = 22
+
+- finetuning_At: total_count=3043799, unique_values=352, value_range=[-928, 847]
+  cutoff (top 30% reaches) = 12 (cum=937593/3043799=30.80%, target=913139.7)
+
+- pretrain_At: total_count=3043799, unique_values=1531, value_range=[-930, 864]
+  cutoff (top 30% reaches) = 24 (cum=926875/3043799=30.45%, target=913139.7)
+
+- value_t: total_count=3043799, unique_values=193, value_range=[-1000, -35]
+  cutoff (top 30% reaches) = -280 (cum=940660/3043799=30.90%, target=913139.7)
+
+- value_tN: total_count=3043799, unique_values=178, value_range=[-1000, -110]
+  cutoff (top 30% reaches) = -220 (cum=954226/3043799=31.35%, target=913139.7)
+
+  [MERGED 4 kinds]
+  merged_total_count=12175196, unique_values=1609, value_range=[-1000, 864]
+  merged_cutoff (top 30% reaches) = -21 (cum=3655317/12175196=30.02%, target=3652558.8)

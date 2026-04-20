@@ -1,0 +1,2 @@
+conda activate pi06_env
+python3 scripts/train_pytorch_valuenet.py value_pretrain --exp_name value_pretrain_1205

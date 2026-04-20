@@ -1,0 +1,16 @@
+
+
+fk1:
+  urdf_path: "/work2/cv5/jfni3/openpi06/scripts/piper_description/urdf/piper_description.urdf"
+  base_links: 
+    - base_link
+  tip_links: 
+    - link6
+  joint_names:
+    - "joint1"
+    - "joint2"
+    - "joint3"
+    - "joint4"
+    - "joint5"
+    - "joint6"
+    
