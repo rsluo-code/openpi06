@@ -93,7 +93,7 @@ TASKS = {
     21: TaskInfo("毛巾", "pick up the towel and put it on the plate", 631, 0.0030 ),
     22: TaskInfo("矿泉水", "pick up the water and put it on the plate", 792, 0.012 ),
     23: TaskInfo("翻转包裹", "If the label is face-up, flip the package and put it in the basket.", 1200, 0.012 ),
-    24: TaskInfo("SF_快递抓取", "Pick and Place package to the right part", 700, 0.007 ),
+    24: TaskInfo("SF_快递抓取", "Pick and Place package to the right part", 200, 0.001 ),
 
 }
 def build_en_to_task(tasks: dict[int, TaskInfo]) -> dict[str, tuple[int, int]]:

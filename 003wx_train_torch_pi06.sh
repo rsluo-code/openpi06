@@ -42,7 +42,7 @@ python -u -m torch.distributed.run \
          --node_rank ${RANK} \
          --master_addr ${MASTER_ADDR} \
          --master_port ${MASTER_PORT} \
-         scripts/train_pytorch_pi06.py PI06_pretrain --exp_name sf_packages_rightarm_20260413 \
+         scripts/train_pytorch_pi06.py PI06_pretrain --exp_name sf_packages_rightarm_20260429 \
             2>&1 \
             | tee "$LOG"
 

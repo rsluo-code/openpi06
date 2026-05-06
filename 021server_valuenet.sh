@@ -52,7 +52,12 @@ export CUDA_VISIBLE_DEVICES=1
 
 
 
-# 20260420 no exchange 8dim valbase 90maxlen
+# 20260420 no exchange 8dim valbase 700maxlen 完整抓包裹切为“只抓放一个包裹” 
+# python scripts/serve_policy.py policy:checkpoint \
+#         --policy.config=value_pretrain_16dim \
+#         --policy.dir=/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260423/80000/
+
+# 20260429 no exchange 8dim valbase 200maxlen “只抓放一个包裹” 切为“只抓一个包裹” 
 python scripts/serve_policy.py policy:checkpoint \
         --policy.config=value_pretrain_16dim \
-        --policy.dir=/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260413/80000
+        --policy.dir=/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260428/75000
