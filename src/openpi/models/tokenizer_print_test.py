@@ -13,12 +13,14 @@ import random
 
 import sentencepiece
 
-# path = download.maybe_download("/wx-mix01/sppro/permanent/yuanzhang10/rlds_data/for_rsluo/paligemma_tokenizer.model", gs={"token": "anon"})
-path = download.maybe_download("gs://big_vision/paligemma_tokenizer.model", gs={"token": "anon"})
+PATH_paligemma_tokenizer_model = "/home/rsluo/codes/openpi06/src/tokenizer_model/paligemma_tokenizer.model"
+path = download.maybe_download(PATH_paligemma_tokenizer_model, gs={"token": "anon"})
+
 
 with path.open("rb") as f:
     _tokenizer = sentencepiece.SentencePieceProcessor(model_proto=f.read())
-cleaned_text = "pick up the square paper box and put it on the plate" 
+cleaned_text = "pick up the square paper box and put it on the plate"
+cleaned_text = "insert sfp_port_0 on nic_card_mount_1"
 # cleaned_text = "pick up a pack of tissues and put it on the plate"
 # cleaned_text = "pick up the water and put it on the plate"
 state_str = "24 152 134 84 135 78 105 176"
@@ -31,24 +33,24 @@ print_texts = [
     f"Task: {cleaned_text}, State: {state_str};\nAction: ",
     f"Task: {cleaned_text}, State: {state_str},\nAction: ",
     f"Task: {cleaned_text}, State: {state_str},;\nAction: ",
-    f"Task: {cleaned_text}, State: {state_str},",
-    f"Task: {cleaned_text}, State: {state_str},;",
-    f"Task: {cleaned_text}, State: {state_str}, ",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator:",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: ",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR]",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\n",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\nAction",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\nAction:",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\nAction: ",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR],Advantage: positive;\nAction: ",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR],Advantage: negative;\nAction: ",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];Advantage: positive;\nAction: ",
-    f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];Advantage: negative;\nAction: ",
+    # f"Task: {cleaned_text}, State: {state_str},",
+    # f"Task: {cleaned_text}, State: {state_str},;",
+    # f"Task: {cleaned_text}, State: {state_str}, ",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator:",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: ",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR]",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\n",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\nAction",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\nAction:",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];\nAction: ",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR],Advantage: positive;\nAction: ",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR],Advantage: negative;\nAction: ",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];Advantage: positive;\nAction: ",
+    # f"Task: {cleaned_text}, State: {state_str}, Indicator: [INDICATOR];Advantage: negative;\nAction: ",
     # f"Task: {cleaned_text}, State: {state_str}; Indicator: [INDICATOR];Advantage: negative;\nAction: ",
     # f"Task: {cleaned_text}, State: {state_str}, Indicator: [ONE];\nAction: ",
     # f"Task: {cleaned_text}, State: {state_str}, Indicator: [ZERO];\nAction: ",
@@ -342,3 +344,5 @@ for text in print_texts:
 # Action: 
 # tokens(61) = [一致, 235269, 77608, 235292, 892, 91858, 1380, 105985, 235292, 8322, 235289, 108, 4022, 235292, 235248]
 # ==================================================
+
+
