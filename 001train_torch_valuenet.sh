@@ -31,6 +31,7 @@ NAME="train_valuenet"
 
 SDIR="/home/rsluo/codes/openpi06/"
 echo "$SDIR"
+export PYTHONPATH="$SDIR/dlimp:$SDIR/src:${PYTHONPATH:-}"
 mkdir -p "$SDIR/debug"
 
 TS="$(date '+%Y%m%d_%H%M%S')"  
@@ -42,7 +43,7 @@ python -m torch.distributed.run \
             --node_rank ${RANK} \
             --master_addr ${MASTER_ADDR} \
             --master_port ${MASTER_PORT} \
-            scripts/train_pytorch_valuenet.py value_pretrain_16dim --exp_name sf_packages_rightarm_20260413 \
+            scripts/train_pytorch_valuenet.py value_pretrain_16dim --exp_name sf_packages_rightarm_20260428 \
             2>&1 \
             | tee "$LOG"
          

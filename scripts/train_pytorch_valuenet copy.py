@@ -230,7 +230,7 @@ def train_loop(config: _config.TrainConfig):
     # ------------------------------
     model_cfg = config.model
     # model = PI06Pytorch(model_cfg).to(device)
-    model = ValueNetPytorch(model_cfg, num_bins=201).to(device)
+    model = ValueNetPytorch(model_cfg, num_bins=201, image_keys=data_config.image_keys).to(device)
     model.gradient_checkpointing_disable() # 执行这个会显存up，推理fast
 
     rank = 0

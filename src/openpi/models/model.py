@@ -52,6 +52,7 @@ IMAGE_KEYS = (
     "base_0_rgb",
     "left_wrist_0_rgb",
     "right_wrist_0_rgb",
+    "episode_first_head_img",
 )
 
 
@@ -279,9 +280,15 @@ class BaseModelConfig(abc.ABC):
     def load_pytorch(self, train_config, weight_path: str):
         logger.info(f"train_config: {train_config}")
         if train_config.pi06_valuenet == True:
-            model = valuenet_pytorch.ValueNetPytorch(config=train_config.model)
+            model = valuenet_pytorch.ValueNetPytorch(
+                config=train_config.model,
+                image_keys=getattr(train_config.data, "image_keys", None),
+            )
         elif train_config.pi06 == True:
-            model = pi06_pytorch.PI06Pytorch(config=train_config.model)
+            model = pi06_pytorch.PI06Pytorch(
+                config=train_config.model,
+                image_keys=getattr(train_config.data, "image_keys", None),
+            )
         else :
             model = pi0_pytorch.PI0Pytorch(config=train_config.model)
         import os

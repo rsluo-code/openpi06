@@ -1,0 +1,1 @@
+我现在在用calAt用8卡过一遍数据,计算看到的所有数据的At,用的桶排序,结果实时记录在/home/rsluo/codes/openpi06/z_bucket_csvs/20260204_5item_8dim,每一个csv记录了值以及该值的数量,但是现在是8卡独立的数据,我希望你检查这里面的local_rank_*,然后输出一个total_rank,然后在中间生成fineting ,pretrain ,value_t, value_tN从大到小10%20%30%..到90%是多少,写一个py和bash脚本放在z_bucket_csvs文件夹下供我执行

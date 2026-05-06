@@ -1,0 +1,1 @@
+025validation_1_hand_valuenet_multi.sh中每个变量含义,修改了会有什么效果,建议注释

@@ -194,7 +194,7 @@ def train_loop(config: _config.TrainConfig):
     # ------------------------------
     model_cfg = config.model
     # model = PI06Pytorch(model_cfg).to(device)
-    model = ValueNetPytorch(model_cfg, num_bins=201).to(device)
+    model = ValueNetPytorch(model_cfg, num_bins=201, image_keys=data_config.image_keys).to(device)
 
     rank = 0
     if dist.is_available() and dist.is_initialized():

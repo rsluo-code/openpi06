@@ -85,6 +85,8 @@ class LindenRldsValueNetDataset:
         use_right = data_config.use_right
         left_size_joint_num = data_config.left_size_joint_num
         right_size_joint_num = data_config.right_size_joint_num
+        image_keys = tuple(getattr(data_config, "image_keys", ()))
+        use_episode_first_head_img = "episode_first_head_img" in image_keys
         episode_blacklist = _load_episode_blacklist(data_config)
         
         if use_left == False and use_right == False:
@@ -103,7 +105,7 @@ class LindenRldsValueNetDataset:
         # 获取当前分布式环境的状态：卡号 (rank) 和总卡数 (world_size)
         rank = dist.get_rank() if dist.is_initialized() else 0
         world_size = dist.get_world_size() if dist.is_initialized() else 1
-        all_data_dirs = glob.glob(f"{data_dir}/*/package_sorting_*")
+        all_data_dirs = glob.glob(f"{data_dir}/package_sorting_*")
         
         # 定义黑名单列表，可以放多个路径或部分匹配
         blacklist = [
@@ -196,7 +198,7 @@ class LindenRldsValueNetDataset:
             for i in range(1, len(datasets)):
                 dataset = dataset.concatenate(datasets[i])
         else:
-            raise ValueError("No valid datasets found in data_dirs!")
+            raise ValueError(f"No valid datasets found in {data_dir}!")
 
         if episode_blacklist:
             file_path_blacklist_regex = tf.constant(_build_file_path_blacklist_regex(episode_blacklist))
@@ -311,14 +313,22 @@ class LindenRldsValueNetDataset:
                 traj["success_or_failure"] = success_or_failure
 
                 
+            observation = {
+                "image": head_img,
+                "right_wrist_image": right_wrist_img,
+                "left_wrist_image": left_wrist_img,
+                "joint_position": joint_position,
+            }
+            if use_episode_first_head_img:
+                observation["episode_first_head_img"] = tf.repeat(
+                    traj["observation"]["image_head"][0:1],
+                    tf.shape(traj["observation"]["image_head"])[0],
+                    axis=0,
+                )
+
             return {
                 "actions": actions,
-                "observation": {
-                    "image": head_img,
-                    "right_wrist_image": right_wrist_img,
-                    "left_wrist_image": left_wrist_img,
-                    "joint_position": joint_position,
-                },
+                "observation": observation,
                 "prompt": instruction,
                 "step_index": step_index,
                 "episode_length": episode_length,
@@ -380,6 +390,8 @@ class LindenRldsValueNetDataset:
             traj["observation"]["image"] = traj["observation"]["image"][:num_chunks]
             traj["observation"]["right_wrist_image"] = traj["observation"]["right_wrist_image"][:num_chunks]
             traj["observation"]["left_wrist_image"] = traj["observation"]["left_wrist_image"][:num_chunks]
+            if use_episode_first_head_img:
+                traj["observation"]["episode_first_head_img"] = traj["observation"]["episode_first_head_img"][:num_chunks]
             traj["observation"]["joint_position"] = traj["observation"]["joint_position"][:num_chunks]
             traj["prompt"] = traj["prompt"][:num_chunks]
 
@@ -411,6 +423,10 @@ class LindenRldsValueNetDataset:
             traj["observation"]["left_wrist_image"] = tf.io.decode_image(
                 traj["observation"]["left_wrist_image"], expand_animations=False, dtype=tf.uint8
             )
+            if use_episode_first_head_img:
+                traj["observation"]["episode_first_head_img"] = tf.io.decode_image(
+                    traj["observation"]["episode_first_head_img"], expand_animations=False, dtype=tf.uint8
+                )
 
             
             # traj["observation"]["image_N"] = tf.io.decode_image(

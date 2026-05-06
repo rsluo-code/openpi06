@@ -20,8 +20,8 @@ import re
 from openpi.models_pytorch.some_func import get_index_and_max_len
 
 DEFAULT_EPISODE_BLACKLIST_TXT_PATHS = [
-    "/home/rsluo/codes/cut_episode_for_pi06/debug/20260415_153549_need_recut_episodes.txt",
-    "/home/rsluo/codes/cut_episode_for_pi06/debug/20260415_153549_short_episodes_lt_100.txt",
+    # "/home/rsluo/codes/cut_episode_for_pi06/debug/20260415_153549_need_recut_episodes.txt",
+    # "/home/rsluo/codes/cut_episode_for_pi06/debug/20260415_153549_short_episodes_lt_100.txt",
 ]
 
 def _load_episode_blacklist(data_config) -> list[str]:
@@ -82,6 +82,8 @@ class LindenRldsPI06Dataset:
         use_right = data_config.use_right
         left_size_joint_num = data_config.left_size_joint_num
         right_size_joint_num = data_config.right_size_joint_num
+        image_keys = tuple(getattr(data_config, "image_keys", ()))
+        use_episode_first_head_img = "episode_first_head_img" in image_keys
         episode_blacklist = _load_episode_blacklist(data_config)
 
         if use_left == False and use_right == False:
@@ -99,7 +101,7 @@ class LindenRldsPI06Dataset:
         # 获取当前分布式环境的状态：卡号 (rank) 和总卡数 (world_size)
         rank = dist.get_rank() if dist.is_initialized() else 0
         world_size = dist.get_world_size() if dist.is_initialized() else 1
-        all_data_dirs = glob.glob(f"{data_dir}/*/package_sorting_*")
+        all_data_dirs = glob.glob(f"{data_dir}/package_sorting_*")
 
 
         # 定义黑名单列表，可以放多个路径或部分匹配
@@ -159,7 +161,7 @@ class LindenRldsPI06Dataset:
             keep_keys = [
                 'action_pose', 'cut_mark', 'is_terminal', 'is_last', 'is_first',
                 'observation', 'language_instruction', 'action_joint', 'overlap',
-                'traj_metadata', '_len', '_traj_index', '_frame_index',"step_index","episode_length","success_or_failure",
+                'traj_metadata', '_len', '_traj_index', '_frame_index',"step_index","episode_length",
             ]
             # 遍历保留的键，构建新字典（避免键不存在时报错）
             filtered_example = {}
@@ -317,14 +319,22 @@ class LindenRldsPI06Dataset:
                 traj["success_or_failure"] = success_or_failure
 
                 
+            observation = {
+                "image": head_img,
+                "right_wrist_image": right_wrist_img,
+                "left_wrist_image": left_wrist_img,
+                "joint_position": joint_position,
+            }
+            if use_episode_first_head_img:
+                observation["episode_first_head_img"] = tf.repeat(
+                    traj["observation"]["image_head"][0:1],
+                    tf.shape(traj["observation"]["image_head"])[0],
+                    axis=0,
+                )
+
             return {
                 "actions": actions,
-                "observation": {
-                    "image": head_img,
-                    "right_wrist_image": right_wrist_img,
-                    "left_wrist_image": left_wrist_img,
-                    "joint_position": joint_position,
-                },
+                "observation": observation,
                 "prompt": instruction,
                 "step_index": step_index,
                 "episode_length": episode_length,
@@ -407,6 +417,8 @@ class LindenRldsPI06Dataset:
             traj["observation"]["image_N"] = traj["observation"]["image"][action_chunk_size-1:traj_len]
             traj["observation"]["right_wrist_image_N"] = traj["observation"]["right_wrist_image"][action_chunk_size-1:traj_len]
             traj["observation"]["left_wrist_image_N"] = traj["observation"]["left_wrist_image"][action_chunk_size-1:traj_len]
+            if use_episode_first_head_img:
+                traj["observation"]["episode_first_head_img_N"] = traj["observation"]["episode_first_head_img"][action_chunk_size-1:traj_len]
             traj["observation"]["joint_position_N"] = traj["observation"]["joint_position"][action_chunk_size-1:traj_len]
 
 
@@ -414,6 +426,8 @@ class LindenRldsPI06Dataset:
             traj["observation"]["image"] = traj["observation"]["image"][:num_chunks]
             traj["observation"]["right_wrist_image"] = traj["observation"]["right_wrist_image"][:num_chunks]
             traj["observation"]["left_wrist_image"] = traj["observation"]["left_wrist_image"][:num_chunks]
+            if use_episode_first_head_img:
+                traj["observation"]["episode_first_head_img"] = traj["observation"]["episode_first_head_img"][:num_chunks]
             traj["observation"]["joint_position"] = traj["observation"]["joint_position"][:num_chunks]
             traj["prompt"] = traj["prompt"][:num_chunks]
 
@@ -456,6 +470,13 @@ class LindenRldsPI06Dataset:
             traj["observation"]["left_wrist_image_N"] = tf.io.decode_image(
                 traj["observation"]["left_wrist_image_N"], expand_animations=False, dtype=tf.uint8
             )
+            if use_episode_first_head_img:
+                traj["observation"]["episode_first_head_img"] = tf.io.decode_image(
+                    traj["observation"]["episode_first_head_img"], expand_animations=False, dtype=tf.uint8
+                )
+                traj["observation"]["episode_first_head_img_N"] = tf.io.decode_image(
+                    traj["observation"]["episode_first_head_img_N"], expand_animations=False, dtype=tf.uint8
+                )
             return traj
         dataset = dataset.frame_map(decode_images, num_parallel_calls)
 
@@ -482,4 +503,3 @@ class LindenRldsPI06Dataset:
         # This is the approximate number of samples in DROID after filtering.
         # Easier to hardcode than to iterate through the dataset and compute it.
         return 25995127
-

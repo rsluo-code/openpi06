@@ -1,0 +1,2 @@
+PROMPT_TYPE="sf包裹"
+PROMPT=""  我建议你看validation_1_hand_valuenet.py 我维护了prompt_map,你应该从那里取,然后我觉得应该是一条episode一个PROMPT_TYPE,bash脚本里面应该还有一个prompt_types让我自己维护

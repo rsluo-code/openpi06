@@ -1,0 +1,2 @@
+我觉得你还需要在openpi06/src/openpi/training/linden_rlds_valunet_dataset.py
+将我需要的  episode_first_head_img 字段加进去，不要忘记哦

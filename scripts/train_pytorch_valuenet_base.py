@@ -238,7 +238,7 @@ def train_loop(config: _config.TrainConfig):
     # Build ValueNet
     # ------------------------------
     model_cfg = config.model
-    model = ValueNetPytorch(model_cfg, num_bins=201).to(device)
+    model = ValueNetPytorch(model_cfg, num_bins=201, image_keys=data_config.image_keys).to(device)
 
 
     def load_pi05_prefix_only(model, ckpt_dir: str):

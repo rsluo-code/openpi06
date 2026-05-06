@@ -1,0 +1,1 @@
+帮我检查/home/rsluo/codes/openpi06/024validation_1_hand_valuenet.sh其中使用的py脚本,改成支持多个episode_dir,生成025和新的py吧,不要影响旧的代码

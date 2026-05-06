@@ -1,0 +1,1 @@
+帮我看openpi06/025validation_1_hand_valuenet_multi.sh,生成的out_mp4现在是沿用H, W = head0.shape[0], head0.shape[1],out_h, out_w = 2 * H, 2 * W  # 2x2 拼接 ;这几个参数,但是head shape太小了,我希望我自己提供大小,提供的大小从bash脚本中自己配置,现在先选择640*360吧,不够大的话resize过去,然后现在是TL=left, TR=right, BL=head, BR=plot,我现在希望out_png_At,out_png_It也要拼接,我希望现在新的视频是2*3的图像,第一列从上往下是头左右,第二列从上往下是out_png,out_png_At,out_png_It

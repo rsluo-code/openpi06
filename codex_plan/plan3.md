@@ -1,0 +1,8 @@
+你可以在openpi06中查看git status
+由于我对value net加了新的需求，即加入轨迹第一帧的图像
+现在训练出的最新的模型在  /data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260423/35000/
+在加入 episode_first_head_img 之前我测试valuenet
+会先启动 021server_valuenet.sh 选择性加载模型，放在服务器server
+然后启动 024validation_1_hand_valuenet.sh，解析原始数据，与服务器通信，模型推理infer获取结果
+现在我是否还能这样测试valuenet
+帮我检查一下

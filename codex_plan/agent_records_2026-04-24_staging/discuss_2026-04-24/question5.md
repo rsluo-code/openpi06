@@ -1,0 +1,1 @@
+你最好看一下validation_1_hand_valuenet.py中的一些变量和Args,NAME_SAVE,prompt,use_left等都是继承validation_1_hand_valuenet中的的参数的,特别是NAME_SAVE,你看看如何修改,我希望名称体现valuenet 时间 模型训练的step 左手还是右手模型,还是双手模型,maxlen是多少,测试的prompt类型是什么

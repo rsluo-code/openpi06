@@ -15,6 +15,7 @@
 # ---------------------------------------------------------
 
 import math
+from collections.abc import Sequence
 from typing import Tuple
 
 import torch
@@ -66,11 +67,12 @@ class ValueNetPytorch(nn.Module):
           - 推理时对 softmax 概率取期望，反推 [-1, 0] 区间上的 value
     """
 
-    def __init__(self, config, num_bins: int = 201):
+    def __init__(self, config, num_bins: int = 201, image_keys: Sequence[str] | None = None):
         super().__init__()
 
         self.config = config
         self.num_bins = num_bins
+        self.image_keys = tuple(image_keys or _preprocessing.IMAGE_KEYS)
 
         # 注意：用 register_buffer，而不是普通 self.bin_centers = ...
         bin_centers = torch.linspace(-1.0, 0.0, steps=201)  # 默认在 CPU 创建没关系
@@ -173,7 +175,11 @@ class ValueNetPytorch(nn.Module):
             lang_tokens : Tensor[B, T_txt]
             lang_masks  : Tensor[B, T_txt]
         """
-        obs = _preprocessing.preprocess_observation_pytorch(observation, train=train)
+        obs = _preprocessing.preprocess_observation_pytorch(
+            observation,
+            train=train,
+            image_keys=self.image_keys,
+        )
 
         images = list(obs.images.values())
         image_masks = list(obs.image_masks.values())

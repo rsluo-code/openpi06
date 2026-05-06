@@ -438,7 +438,7 @@ def train_loop(config: _config.TrainConfig):
 
     # model = openpi.models_pytorch.pi0_pytorch.PI0Pytorch(model_cfg).to(device)
     from openpi.models_pytorch.valuenet_pytorch import ValueNetPytorch
-    model = ValueNetPytorch(model_cfg, num_bins=201).to(device)
+    model = ValueNetPytorch(model_cfg, num_bins=201, image_keys=data_config.image_keys).to(device)
 
 
     enable_gradient_checkpointing = False

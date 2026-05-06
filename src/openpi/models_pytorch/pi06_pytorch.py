@@ -1,5 +1,6 @@
 import logging
 import math
+from collections.abc import Sequence
 
 import torch
 from torch import Tensor
@@ -130,10 +131,11 @@ def load_checkpioint_for_value_net(model, ckpt_dir: str):
         print(f"[ValueNet] unexpected keys from ckpt (已忽略): {unexpected}")
 
 class PI06Pytorch(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, image_keys: Sequence[str] | None = None):
         super().__init__()
         self.config = config
         self.pi05 = config.pi05
+        self.image_keys = tuple(image_keys or _preprocessing.IMAGE_KEYS)
 
         paligemma_config = _gemma.get_config(config.paligemma_variant)
         action_expert_config = _gemma.get_config(config.action_expert_variant)
@@ -191,7 +193,8 @@ class PI06Pytorch(nn.Module):
             from openpi.training import config as _config
             valuenet_config = _config.get_config("value_pretrain_16dim") 
             # valuenet_checkpoint_dir = "/wx-mix01/sppro/permanent/yuanzhang10/codes_rsluo/openpi06/pi06_torch/value_pretrain_16dim/valuenet_pretrain_20260128_2b_8dim_noexchangimg_only5item/45000"
-            valuenet_checkpoint_dir = "/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260413/80000"
+            valuenet_checkpoint_dir = "/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260428/75000/"
+            # valuenet_checkpoint_dir = "/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260423/80000"
             self.value_net = _policy_config.create_trained_policy(valuenet_config, valuenet_checkpoint_dir)
             print("config.if_use_valuenet == True")
         else:
@@ -254,7 +257,11 @@ class PI06Pytorch(nn.Module):
 
     def _preprocess_observation(self, observation, *, train=True):
         """Helper method to preprocess observation."""
-        observation = _preprocessing.preprocess_observation_pytorch(observation, train=train)
+        observation = _preprocessing.preprocess_observation_pytorch(
+            observation,
+            train=train,
+            image_keys=self.image_keys,
+        )
         return (
             list(observation.images.values()),
             list(observation.image_masks.values()),
@@ -630,6 +637,8 @@ class PI06Pytorch(nn.Module):
             if self.value_net is not None:
                 # cal_i_start_time = sys_time.time()
                 indicator = self.value_net._model.forward_cal_indicator( observation,observation_tN, step_index, episode_length, language_instruction_max_len,language_instruction_at_30precent)
+                tail_window = (episode_length - step_index) <= 50
+                indicator = torch.logical_or(indicator.to(dtype=torch.bool), tail_window.to(dtype=torch.bool)).to(dtype=indicator.dtype)
                 # cal_i_end_time = sys_time.time()
                 # print(f"cal_i_use_time:{(cal_i_end_time-cal_i_start_time):.3f}s")
             else:

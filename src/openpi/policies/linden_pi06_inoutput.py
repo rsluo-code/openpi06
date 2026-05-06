@@ -23,6 +23,11 @@ class LindenInputs(transforms.DataTransformFn):
     use_left:bool = False
     use_right:bool = False
     train_or_infer:str = "infer"
+    image_keys: tuple[str, ...] = (
+        "base_0_rgb",
+        "left_wrist_0_rgb",
+        "right_wrist_0_rgb",
+    )
     def __call__(self, data: dict) -> dict:
         if self.use_left == False and self.use_right == False:
             raise RuntimeError(f"LindenInputs use_left and use_right must one be True")
@@ -46,11 +51,17 @@ class LindenInputs(transforms.DataTransformFn):
         base_image = _parse_image(data["observation/image"])
         wrist_image_left = _parse_image(data["observation/wrist_image_left"])
         wrist_image_right = _parse_image(data["observation/wrist_image_right"])
+        episode_first_head_img = None
+        if "episode_first_head_img" in self.image_keys:
+            episode_first_head_img = _parse_image(data["observation/episode_first_head_img"])
 
         state_N = np.asarray(data["observation/joint_position_N"])
         base_image_N = _parse_image(data["observation/image_N"])
         wrist_image_left_N = _parse_image(data["observation/wrist_image_left_N"])
         wrist_image_right_N = _parse_image(data["observation/wrist_image_right_N"])
+        episode_first_head_img_N = None
+        if "episode_first_head_img" in self.image_keys:
+            episode_first_head_img_N = _parse_image(data["observation/episode_first_head_img_N"])
 
         # print(f"shape base_image = {base_image.shape}")
         # print(f"shape wrist_image_left = {wrist_image_left.shape}")
@@ -105,12 +116,16 @@ class LindenInputs(transforms.DataTransformFn):
         base_image = flip_image(base_image)
         wrist_image_left_exchange = flip_image(wrist_image_left)
         wrist_image_right_exchange = flip_image(wrist_image_right)
+        if episode_first_head_img is not None:
+            episode_first_head_img = flip_image(episode_first_head_img)
 
 
         state_N = process_array(state_N)
         base_image_N = flip_image(base_image_N)
         wrist_image_left_exchange_N = flip_image(wrist_image_left_N)
         wrist_image_right_exchange_N = flip_image(wrist_image_right_N)
+        if episode_first_head_img_N is not None:
+            episode_first_head_img_N = flip_image(episode_first_head_img_N)
 
         if should_process:
             wrist_image_left = wrist_image_right_exchange
@@ -140,17 +155,41 @@ class LindenInputs(transforms.DataTransformFn):
             image_masks = (np.True_, np.True_, np.False_)
         
 
-        names = ("base_0_rgb", "left_wrist_0_rgb", "right_wrist_0_rgb")
-        images = (base_image, wrist_image_left, wrist_image_right)
-        images_N = (base_image_N, wrist_image_left_N, wrist_image_right_N)
-        
+        image_by_key = {
+            "base_0_rgb": base_image,
+            "left_wrist_0_rgb": wrist_image_left,
+            "right_wrist_0_rgb": wrist_image_right,
+        }
+        image_by_key_N = {
+            "base_0_rgb": base_image_N,
+            "left_wrist_0_rgb": wrist_image_left_N,
+            "right_wrist_0_rgb": wrist_image_right_N,
+        }
+        if episode_first_head_img is not None:
+            image_by_key["episode_first_head_img"] = episode_first_head_img
+        if episode_first_head_img_N is not None:
+            image_by_key_N["episode_first_head_img"] = episode_first_head_img_N
+        missing = set(self.image_keys) - set(image_by_key)
+        if missing:
+            raise ValueError(f"Unsupported image_keys: {sorted(missing)}")
+        missing_N = set(self.image_keys) - set(image_by_key_N)
+        if missing_N:
+            raise ValueError(f"Unsupported image_keys for observation_N: {sorted(missing_N)}")
 
+        mask_by_key = {
+            "base_0_rgb": image_masks[0],
+            "left_wrist_0_rgb": image_masks[1],
+            "right_wrist_0_rgb": image_masks[2],
+        }
+        if episode_first_head_img is not None:
+            mask_by_key["episode_first_head_img"] = np.True_
+        
         inputs = {
             "state": state,
             "state_N": state_N,
-            "image": dict(zip(names, images, strict=True)),
-            "image_N": dict(zip(names, images_N, strict=True)),
-            "image_mask": dict(zip(names, image_masks, strict=True)),
+            "image": {key: image_by_key[key] for key in self.image_keys},
+            "image_N": {key: image_by_key_N[key] for key in self.image_keys},
+            "image_mask": {key: mask_by_key[key] for key in self.image_keys},
 
 
             "step_index": data["step_index"],
@@ -191,4 +230,3 @@ class LindenOutputs(transforms.DataTransformFn):
             return {"actions": np.asarray(data["actions"][:, 0:self.right_size_joint_num])}
 
         return {"actions": np.asarray(data["actions"][:, 0:(self.left_size_joint_num+self.right_size_joint_num)])}
-

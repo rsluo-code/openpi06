@@ -113,6 +113,11 @@ class DataConfig:
     is_norm_state: bool = False
     is_pi06_data: bool = False
     is_valuenet_data: bool = False
+    image_keys: Sequence[str] = (
+        "base_0_rgb",
+        "left_wrist_0_rgb",
+        "right_wrist_0_rgb",
+    )
 
 
 
@@ -560,6 +565,11 @@ class RLDSLindenValueNetDataConfig(DataConfigFactory):
     left_size_joint_num: int = 8
     right_size_joint_num: int = 8
     train_or_infer:str = "infer"
+    image_keys: Sequence[str] = (
+        "base_0_rgb",
+        "left_wrist_0_rgb",
+        "right_wrist_0_rgb",
+    )
     # If true, this will convert the joint and gripper values from the standard Aloha space to
     # the space used by the pi internal runtime which was used to train the base model. People who
     # use standard Aloha data should set this to true.
@@ -570,35 +580,41 @@ class RLDSLindenValueNetDataConfig(DataConfigFactory):
 
     @override
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+        repack_mapping = {
+            "observation/image": "observation/image",
+            "observation/wrist_image_left": "observation/left_wrist_image",
+            "observation/wrist_image_right": "observation/right_wrist_image",
+            "observation/joint_position": "observation/joint_position",
+            "actions": "actions",
+            "prompt": "prompt",
+            "step_index": "step_index",
+            "episode_length": "episode_length",
+            "language_instruction_index": "language_instruction_index",
+            "language_instruction_max_len": "language_instruction_max_len",
+            "language_instruction_at_30precent": "language_instruction_at_30precent",
+            "success_or_failure": "success_or_failure",
+        }
+        if "episode_first_head_img" in self.image_keys:
+            repack_mapping["observation/episode_first_head_img"] = "observation/episode_first_head_img"
+
         repack_transform = _transforms.Group(
             inputs=[
                 _transforms.RepackTransform(
-                    {
-                        "observation/image": "observation/image",
-                        "observation/wrist_image_left": "observation/left_wrist_image",
-                        "observation/wrist_image_right": "observation/right_wrist_image",
-                        "observation/joint_position": "observation/joint_position",
-                        "actions": "actions",
-                        "prompt": "prompt",
-                        "step_index": "step_index",
-                        "episode_length": "episode_length",
-                        "language_instruction_index": "language_instruction_index",
-                        "language_instruction_max_len": "language_instruction_max_len",
-                        "language_instruction_at_30precent": "language_instruction_at_30precent",
-                        
-                        "success_or_failure": "success_or_failure",
-                        
-                        # "observation/image_N": "observation/image_N",
-                        # "observation/wrist_image_left_N": "observation/left_wrist_image_N",
-                        # "observation/wrist_image_right_N": "observation/right_wrist_image_N",
-                        # "observation/joint_position_N": "observation/joint_position_N",
-                    }
+                    repack_mapping
                 )
             ]
         )
 
         data_transforms = _transforms.Group(
-            inputs=[linden_valuenet_inoutput.LindenInputs(model_type=model_config.model_type,use_left=self.use_left,use_right=self.use_right,train_or_infer = self.train_or_infer)],
+            inputs=[
+                linden_valuenet_inoutput.LindenInputs(
+                    model_type=model_config.model_type,
+                    use_left=self.use_left,
+                    use_right=self.use_right,
+                    train_or_infer=self.train_or_infer,
+                    image_keys=tuple(self.image_keys),
+                )
+            ],
             outputs=[linden_valuenet_inoutput.LindenOutputs(use_left=self.use_left,use_right=self.use_right,left_size_joint_num=self.left_size_joint_num,right_size_joint_num=self.right_size_joint_num)],
         )
 
@@ -631,7 +647,8 @@ class RLDSLindenValueNetDataConfig(DataConfigFactory):
             use_right = self.use_right,
             left_size_joint_num = self.left_size_joint_num,
             right_size_joint_num = self.right_size_joint_num,
-            is_valuenet_data=True
+            is_valuenet_data=True,
+            image_keys=tuple(self.image_keys),
         )
 
 
@@ -644,6 +661,11 @@ class RLDSLindenPI06DataConfig(DataConfigFactory):
     left_size_joint_num: int = 8
     right_size_joint_num: int = 8
     train_or_infer:str = "infer"
+    image_keys: Sequence[str] = (
+        "base_0_rgb",
+        "left_wrist_0_rgb",
+        "right_wrist_0_rgb",
+    )
     # If true, this will convert the joint and gripper values from the standard Aloha space to
     # the space used by the pi internal runtime which was used to train the base model. People who
     # use standard Aloha data should set this to true.
@@ -654,35 +676,38 @@ class RLDSLindenPI06DataConfig(DataConfigFactory):
 
     @override
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+        repack_mapping = {
+            "observation/image": "observation/image",
+            "observation/wrist_image_left": "observation/left_wrist_image",
+            "observation/wrist_image_right": "observation/right_wrist_image",
+            "observation/joint_position": "observation/joint_position",
+            "actions": "actions",
+            "prompt": "prompt",
+            "step_index": "step_index",
+            "episode_length": "episode_length",
+            "language_instruction_index": "language_instruction_index",
+            "language_instruction_max_len": "language_instruction_max_len",
+            "language_instruction_at_30precent": "language_instruction_at_30precent",
+            "success_or_failure": "success_or_failure",
+            "observation/image_N": "observation/image_N",
+            "observation/wrist_image_left_N": "observation/left_wrist_image_N",
+            "observation/wrist_image_right_N": "observation/right_wrist_image_N",
+            "observation/joint_position_N": "observation/joint_position_N",
+        }
+        if "episode_first_head_img" in self.image_keys:
+            repack_mapping["observation/episode_first_head_img"] = "observation/episode_first_head_img"
+            repack_mapping["observation/episode_first_head_img_N"] = "observation/episode_first_head_img_N"
+
         repack_transform = _transforms.Group(
             inputs=[
                 _transforms.RepackTransform(
-                    {
-                        "observation/image": "observation/image",
-                        "observation/wrist_image_left": "observation/left_wrist_image",
-                        "observation/wrist_image_right": "observation/right_wrist_image",
-                        "observation/joint_position": "observation/joint_position",
-                        "actions": "actions",
-                        "prompt": "prompt",
-                        "step_index": "step_index",
-                        "episode_length": "episode_length",
-                        "language_instruction_index": "language_instruction_index",
-                        "language_instruction_max_len": "language_instruction_max_len",
-                        "language_instruction_at_30precent": "language_instruction_at_30precent",
-                        
-                        "success_or_failure": "success_or_failure",
-                        
-                        "observation/image_N": "observation/image_N",
-                        "observation/wrist_image_left_N": "observation/left_wrist_image_N",
-                        "observation/wrist_image_right_N": "observation/right_wrist_image_N",
-                        "observation/joint_position_N": "observation/joint_position_N",
-                    }
+                    repack_mapping
                 )
             ]
         )
 
         data_transforms = _transforms.Group(
-            inputs=[linden_pi06_inoutput.LindenInputs(model_type=model_config.model_type,use_left=self.use_left,use_right=self.use_right,train_or_infer = self.train_or_infer)],
+            inputs=[linden_pi06_inoutput.LindenInputs(model_type=model_config.model_type,use_left=self.use_left,use_right=self.use_right,train_or_infer = self.train_or_infer,image_keys=tuple(self.image_keys))],
             outputs=[linden_pi06_inoutput.LindenOutputs(use_left=self.use_left,use_right=self.use_right,left_size_joint_num=self.left_size_joint_num,right_size_joint_num=self.right_size_joint_num)],
         )
 
@@ -715,7 +740,8 @@ class RLDSLindenPI06DataConfig(DataConfigFactory):
             use_right = self.use_right,
             left_size_joint_num = self.left_size_joint_num,
             right_size_joint_num = self.right_size_joint_num,
-            is_pi06_data=True
+            is_pi06_data=True,
+            image_keys=tuple(self.image_keys),
         )
 
 
@@ -999,9 +1025,15 @@ _CONFIGS = [
             use_right = True,
             left_size_joint_num = 8,
             right_size_joint_num = 8,
-            train_or_infer = "infer"
+            train_or_infer = "infer",
+            image_keys=(
+                "base_0_rgb",
+                "left_wrist_0_rgb",
+                "right_wrist_0_rgb",
+                "episode_first_head_img",
+            ),
         ),
-        pytorch_weight_path="/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260413/80000",
+        pytorch_weight_path="/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260423/80000",
         pi06=False,
         pi06_valuenet=True,
         lr_schedule=_optimizer.CosineDecaySchedule(
@@ -1011,7 +1043,7 @@ _CONFIGS = [
             decay_lr=5e-5,
         ),
         num_train_steps=3_341,
-        batch_size=3072,
+        batch_size=2400,
         log_interval=2,
         save_interval=5000,
         keep_period=5000,
@@ -1038,9 +1070,15 @@ _CONFIGS = [
             use_right = True,
             left_size_joint_num = 8,
             right_size_joint_num = 8,
-            train_or_infer = "infer"
+            train_or_infer = "infer",
+            image_keys=(
+                "base_0_rgb",
+                "left_wrist_0_rgb",
+                "right_wrist_0_rgb",
+                "episode_first_head_img",
+            ),
         ),
-        pytorch_weight_path="/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260413/80000",
+        pytorch_weight_path="/data0/rsluo/pi06_torch/value_pretrain_16dim/sf_packages_rightarm_20260423/80000",
         pi06=False,
         pi06_valuenet=True,
         lr_schedule=_optimizer.CosineDecaySchedule(
@@ -1071,9 +1109,15 @@ _CONFIGS = [
         model=pi0_config.Pi0Config(pi05=True, action_horizon=30, paligemma_variant="gemma_2b", action_expert_variant="gemma_300m"),
         data=RLDSLindenValueNetDataConfig(
             repo_id="sf_packages_rightarm_20260413_normstats",
-            rlds_data_dir="/data0/rlds_datas_cut/sf_packages",
+            rlds_data_dir="/data0/rlds_datas_cut_only_pick/sf_packages",
             use_left= False,
             use_right = True,
+            image_keys=(
+                "base_0_rgb",
+                "left_wrist_0_rgb",
+                "right_wrist_0_rgb",
+                # "episode_first_head_img",
+            ),
 
             left_size_joint_num = 8,
             right_size_joint_num = 8,
@@ -1096,7 +1140,7 @@ _CONFIGS = [
         num_workers=0,  # Important: RLDS DataLoader requires num_workers=0, handles multi-processing internally
         wandb_enabled=False,        
         optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
-        resume=True
+        # resume=True,
     ),
 
     # value_pretrain_right_arm_8dim_sf_packages
@@ -1148,8 +1192,8 @@ _CONFIGS = [
         data=RLDSLindenPI06DataConfig(
             repo_id="sf_packages_rightarm_20260413_normstats",
             rlds_data_dir="/data0/rlds_datas_cut/sf_packages",
-            use_left= True,
-            use_right = False,
+            use_left= False,
+            use_right = True,
             left_size_joint_num = 8,
             right_size_joint_num = 8,
             # train_or_infer = "train",
@@ -1183,15 +1227,21 @@ _CONFIGS = [
         # We use RLDS data loading to make training on this large dataset tractable.
         # For fine-tuning on your own DROID dataset, see below.
         name="PI06_pretrain",
-        model=pi0_config.Pi0Config(pi05=True, action_horizon=30, paligemma_variant="gemma_2b", action_expert_variant="gemma_300m",if_use_valuenet=False),
+        model=pi0_config.Pi0Config(pi05=True, action_horizon=30, paligemma_variant="gemma_2b", action_expert_variant="gemma_300m",if_use_valuenet=True),
         # data=RLDSLindenValueNetDataConfig(
         data=RLDSLindenPI06DataConfig(
             repo_id="sf_packages_rightarm_20260413_normstats",
-            rlds_data_dir="/data0/rlds_datas_cut/sf_packages",
+            rlds_data_dir="/data0/rlds_datas_cut_only_pick/sf_packages",
             use_left= False,
             use_right = True,
             left_size_joint_num = 8,
             right_size_joint_num = 8,
+            image_keys=(
+                "base_0_rgb",
+                "left_wrist_0_rgb",
+                "right_wrist_0_rgb",
+                # "episode_first_head_img",
+            ),
             train_or_infer = "train",
             # train_or_infer = "infer",
         ),
@@ -1205,7 +1255,7 @@ _CONFIGS = [
             decay_lr=5e-5,
         ),
         num_train_steps=200_001,
-        batch_size=256,
+        batch_size=200,
         log_interval=20,
         save_interval=5000,
         keep_period=5000,

@@ -159,7 +159,7 @@ def save_checkpoint(model, optimizer, global_step, config, is_main, data_config)
         shutil.rmtree(ckpt_dir)
     tmp_dir.rename(ckpt_dir)
 
-    logging.info(f"[ValueNet] Saved checkpoint at step {global_step}")
+    logging.info(f"[ValueNet] Saved checkpoint at step {global_step} :{ckpt_dir}")
 
 
 def get_latest_checkpoint_step(checkpoint_dir):
@@ -170,6 +170,50 @@ def get_latest_checkpoint_step(checkpoint_dir):
         if d.is_dir() and d.name.isdigit() and not d.name.startswith("tmp_")
     ]
     return max(checkpoint_steps) if checkpoint_steps else None
+
+
+def load_checkpoint(model, optimizer, checkpoint_dir, device):
+    """Load the latest ValueNet checkpoint and return the resumed global step."""
+    latest_step = get_latest_checkpoint_step(checkpoint_dir)
+    if latest_step is None:
+        raise FileNotFoundError(f"No checkpoints found in {checkpoint_dir}")
+
+    ckpt_dir = checkpoint_dir / f"{latest_step}"
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        gc.collect()
+
+    logging.info(f"[ValueNet] Loading checkpoint from {ckpt_dir}")
+
+    safetensors_path = ckpt_dir / "model.safetensors"
+    if not safetensors_path.exists():
+        raise FileNotFoundError(f"No model checkpoint found at {ckpt_dir}")
+    model_to_load = model.module if isinstance(model, DistributedDataParallel) else model
+    safetensors.torch.load_model(model_to_load, safetensors_path, device=str(device))
+    logging.info("[ValueNet] Loaded model state from safetensors format")
+
+    optimizer_path = ckpt_dir / "optimizer.pt"
+    if not optimizer_path.exists():
+        raise FileNotFoundError(f"No optimizer checkpoint found at {ckpt_dir}")
+    optimizer_state_dict = torch.load(optimizer_path, map_location=device, weights_only=False)
+    optimizer.load_state_dict(optimizer_state_dict)
+    del optimizer_state_dict
+    logging.info("[ValueNet] Loaded optimizer state from pt format")
+
+    metadata_path = ckpt_dir / "metadata.pt"
+    if metadata_path.exists():
+        metadata = torch.load(metadata_path, map_location=device, weights_only=False)
+        global_step = metadata.get("global_step", latest_step)
+        del metadata
+    else:
+        global_step = latest_step
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        gc.collect()
+
+    logging.info(f"[ValueNet] Successfully loaded checkpoint from step {latest_step}")
+    return global_step
 
     
 # -----------------------------------------
@@ -182,13 +226,16 @@ def train_loop(config: _config.TrainConfig):
 
 
     # Initialize checkpoint directory and wandb
+    resuming = False
     if config.resume:
         # Find checkpoint directory based on experiment name
         exp_checkpoint_dir = config.checkpoint_dir
+        print(f"config.checkpoint_dir:{config.checkpoint_dir}")
         if exp_checkpoint_dir.exists():
             # Use validation to find the latest working checkpoint
             latest_step = get_latest_checkpoint_step(exp_checkpoint_dir)
             if latest_step is not None:
+                resuming = True
                 logging.info(
                     f"Resuming from experiment checkpoint directory: {exp_checkpoint_dir} at step {latest_step}"
                 )
@@ -196,6 +243,7 @@ def train_loop(config: _config.TrainConfig):
                 raise FileNotFoundError(f"No valid checkpoints found in {exp_checkpoint_dir} for resume")
         else:
             raise FileNotFoundError(f"Experiment checkpoint directory {exp_checkpoint_dir} does not exist for resume")
+        print(f"train_loop_config:{config}")
     elif config.overwrite and config.checkpoint_dir.exists():
         shutil.rmtree(config.checkpoint_dir)
         logging.info(f"Overwriting checkpoint directory: {config.checkpoint_dir}")
@@ -229,7 +277,7 @@ def train_loop(config: _config.TrainConfig):
     # ------------------------------
     model_cfg = config.model
     # model = PI06Pytorch(model_cfg).to(device)
-    model = ValueNetPytorch(model_cfg, num_bins=201).to(device)
+    model = ValueNetPytorch(model_cfg, num_bins=201, image_keys=data_config.image_keys).to(device)
     model.gradient_checkpointing_disable() # 执行这个会显存up，推理fast
 
     rank = 0
@@ -278,10 +326,14 @@ def train_loop(config: _config.TrainConfig):
     )
 
     global_step = 0
+    if resuming:
+        global_step = load_checkpoint(model, optimizer, config.checkpoint_dir, device)
+        logging.info(f"[ValueNet] Resumed training from step {global_step}")
+
     if is_main:
         logging.info("🚀 Starting ValueNet training...")
 
-    pbar = tqdm.tqdm(total=config.num_train_steps, disable=not is_main)
+    pbar = tqdm.tqdm(total=config.num_train_steps, initial=global_step, disable=not is_main)
 
     # ------------------------------
     # Main training loop
@@ -417,9 +469,8 @@ def train_loop(config: _config.TrainConfig):
                     
                     flush=True,
                 )
-            save_checkpoint(model, optimizer, global_step, config, is_main, data_config)
-
             global_step += 1
+            save_checkpoint(model, optimizer, global_step, config, is_main, data_config)
             pbar.update(1)
 
     pbar.close()

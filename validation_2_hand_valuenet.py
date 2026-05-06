@@ -359,6 +359,7 @@ def eval_isaac(args: Args) -> None:
     Rt2_list = []
 
     print(f"Episode length (aligned) = {L}")
+    episode_first_head_img = einops.rearrange(head_frames[0], "h w c -> c h w")
     for i in tqdm.tqdm(range(L)):
         img = head_frames[i]
         right_wrist_img = right_frames[i]
@@ -370,6 +371,7 @@ def eval_isaac(args: Args) -> None:
 
         element = {
             "observation/image": img,
+            "observation/episode_first_head_img": episode_first_head_img,
             "observation/wrist_image_right": right_wrist_img,
             "observation/wrist_image_left": left_wrist_img,
             "observation/joint_position": states[i],
