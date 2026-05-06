@@ -169,7 +169,9 @@ cython_debug/
 
 
 z_valn_output/
+z_pi06_output/
 z_bucket_csvs/
+runs/
 tmp_data/
 test_copy_code/
 debug/

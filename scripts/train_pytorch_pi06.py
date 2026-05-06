@@ -24,11 +24,14 @@ Multi-Node Training:
 """
 
 import dataclasses
+import csv
 import gc
 import logging
 import os
 import platform
+import pathlib
 import shutil
+import sys
 import time
 
 import jax
@@ -39,12 +42,23 @@ import torch.distributed as dist
 import torch.nn.parallel
 import tqdm
 import wandb
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+except ImportError:  # pragma: no cover - optional dependency
+    matplotlib = None
+    plt = None
 # 基础库
 import torch
 import os
 import datetime  # 用于生成唯一的日志目录名
 # TensorBoard核心库
 from torch.utils.tensorboard import SummaryWriter
+try:
+    import psutil
+except ImportError:  # pragma: no cover - optional dependency
+    psutil = None
 
 import openpi.models.pi0_config
 import openpi.models_pytorch.pi0_pytorch
@@ -69,6 +83,110 @@ def init_tensorboard():
     # 打印日志目录（方便后续启动TensorBoard时确认路径）
     print(f"TensorBoard日志已保存到：{log_dir}")
     return writer
+
+
+@dataclasses.dataclass
+class MetricsArtifacts:
+    csv_path: pathlib.Path
+    png_path: pathlib.Path
+    rows: list[dict[str, float | int | str]]
+    fieldnames: list[str]
+
+
+def init_metrics_artifacts(config: _config.TrainConfig) -> MetricsArtifacts:
+    metrics_dir = config.checkpoint_dir / "monitoring"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+    run_tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_path = metrics_dir / f"training_metrics_{run_tag}.csv"
+    png_path = metrics_dir / f"training_metrics_{run_tag}.png"
+    fieldnames = [
+        "timestamp",
+        "global_step",
+        "interval_steps",
+        "elapsed_sec",
+        "time_per_step_sec",
+        "loss",
+        "learning_rate",
+        "grad_norm",
+        "gpu_mem_allocated_gb",
+        "gpu_mem_reserved_gb",
+        "gpu_mem_peak_allocated_gb",
+        "gpu_mem_peak_reserved_gb",
+        "cpu_percent",
+        "cpu_mem_used_gb",
+        "cpu_mem_total_gb",
+        "cpu_mem_percent",
+        "process_rss_gb",
+    ]
+    rows: list[dict[str, float | int | str]] = []
+    with csv_path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+    logging.info(f"Metrics CSV: {csv_path}")
+    logging.info(f"Metrics PNG: {png_path}")
+    print(f"[metrics] csv_path={csv_path}")
+    print(f"[metrics] png_path={png_path}")
+    return MetricsArtifacts(csv_path=csv_path, png_path=png_path, rows=rows, fieldnames=fieldnames)
+
+
+def append_metrics_row(artifacts: MetricsArtifacts, row: dict[str, float | int | str]) -> None:
+    artifacts.rows.append(row)
+    with artifacts.csv_path.open("a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=artifacts.fieldnames)
+        writer.writerow(row)
+
+
+def render_metrics_plot(artifacts: MetricsArtifacts) -> None:
+    if plt is None or not artifacts.rows:
+        return
+
+    steps = [int(row["global_step"]) for row in artifacts.rows]
+    metric_specs = [
+        ("loss", "Loss", [("loss", "loss")]),
+        ("learning_rate", "Learning Rate", [("learning_rate", "lr")]),
+        ("grad_norm", "Grad Norm", [("grad_norm", "grad_norm")]),
+        (
+            "gpu_mem_allocated_gb",
+            "GPU Memory (GB)",
+            [
+                ("gpu_mem_allocated_gb", "allocated"),
+                ("gpu_mem_reserved_gb", "reserved"),
+                ("gpu_mem_peak_allocated_gb", "peak_alloc"),
+                ("gpu_mem_peak_reserved_gb", "peak_reserved"),
+            ],
+        ),
+        ("cpu_percent", "CPU Percent", [("cpu_percent", "cpu%")]),
+        ("cpu_mem_percent", "CPU Memory", [("cpu_mem_percent", "mem%"), ("cpu_mem_used_gb", "used_gb")]),
+        ("process_rss_gb", "Process RSS (GB)", [("process_rss_gb", "rss_gb")]),
+    ]
+
+    fig, axes = plt.subplots(len(metric_specs), 1, figsize=(16, 24), sharex=True)
+    fig.suptitle("PI06 Training Metrics", fontsize=16)
+
+    for ax, (_, title, series_specs) in zip(axes, metric_specs, strict=True):
+        has_any_series = False
+        for field, label in series_specs:
+            values = []
+            valid = False
+            for row in artifacts.rows:
+                value = row.get(field, "")
+                if value == "":
+                    values.append(float("nan"))
+                else:
+                    values.append(float(value))
+                    valid = True
+            if valid:
+                ax.plot(steps, values, label=label, linewidth=1.5)
+                has_any_series = True
+        ax.set_title(title)
+        ax.grid(True, alpha=0.3)
+        if has_any_series and len(series_specs) > 1:
+            ax.legend(loc="best", fontsize=9)
+
+    axes[-1].set_xlabel("Global Step")
+    fig.tight_layout(rect=(0, 0, 1, 0.985))
+    fig.savefig(artifacts.png_path, dpi=150)
+    plt.close(fig)
 
 def init_logging():
     level_mapping = {"DEBUG": "D", "INFO": "I", "WARNING": "W", "ERROR": "E", "CRITICAL": "C"}
@@ -330,6 +448,24 @@ def log_memory_usage(device, step, phase="unknown"):
     )
 
 
+def get_system_metrics(device):
+    metrics = {}
+    if torch.cuda.is_available():
+        metrics["gpu_mem_allocated_gb"] = torch.cuda.memory_allocated(device) / 1e9
+        metrics["gpu_mem_reserved_gb"] = torch.cuda.memory_reserved(device) / 1e9
+        metrics["gpu_mem_peak_allocated_gb"] = torch.cuda.max_memory_allocated(device) / 1e9
+        metrics["gpu_mem_peak_reserved_gb"] = torch.cuda.max_memory_reserved(device) / 1e9
+    if psutil is not None:
+        vm = psutil.virtual_memory()
+        metrics["cpu_percent"] = psutil.cpu_percent(interval=None)
+        metrics["cpu_mem_used_gb"] = (vm.total - vm.available) / 1e9
+        metrics["cpu_mem_total_gb"] = vm.total / 1e9
+        metrics["cpu_mem_percent"] = vm.percent
+        proc = psutil.Process(os.getpid())
+        metrics["process_rss_gb"] = proc.memory_info().rss / 1e9
+    return metrics
+
+
 def train_loop(config: _config.TrainConfig):
     use_ddp, local_rank, device = setup_ddp()
     is_main = (not use_ddp) or (dist.get_rank() == 0)
@@ -373,6 +509,11 @@ def train_loop(config: _config.TrainConfig):
     # Initialize wandb (only on main process)
     if is_main:
         init_wandb(config, resuming=resuming, enabled=config.wandb_enabled)
+        metrics_artifacts = init_metrics_artifacts(config)
+        if plt is None:
+            logging.warning("matplotlib is not available; metrics PNG rendering is disabled")
+    else:
+        metrics_artifacts = None
     if rank==0:
         tensorboard_writer = init_tensorboard()
     # Build data loader using the unified data loader
@@ -436,7 +577,7 @@ def train_loop(config: _config.TrainConfig):
         object.__setattr__(model_cfg, "dtype", config.pytorch_training_precision)
 
     from openpi.models_pytorch.pi06_pytorch import PI06Pytorch
-    model = PI06Pytorch(model_cfg).to(device)
+    model = PI06Pytorch(model_cfg, image_keys=data_config.image_keys).to(device)
 
     # if hasattr(model, "gradient_checkpointing_enable"):
     #     enable_gradient_checkpointing = True
@@ -561,11 +702,14 @@ def train_loop(config: _config.TrainConfig):
         logging.info(f"Training precision: {model_cfg.dtype}")
 
     # Training loop - iterate until we reach num_train_steps
+    show_pbar = is_main and sys.stderr.isatty()
     pbar = (
-        tqdm.tqdm(total=config.num_train_steps, initial=global_step, desc="Training", disable=not is_main)
-        if is_main
+        tqdm.tqdm(total=config.num_train_steps, initial=global_step, desc="Training", disable=not show_pbar)
+        if show_pbar
         else None
     )
+    if is_main and not show_pbar:
+        logging.info("Progress bar disabled because stderr is not a TTY; using log_interval summaries only")
 
     while global_step < config.num_train_steps:
         # Set epoch for distributed training
@@ -638,7 +782,13 @@ def train_loop(config: _config.TrainConfig):
             # 写入TensorBoard指标（核心步骤）
             # 写入所有train_info里的指标
             if rank==0:
-                tensorboard_writer.add_scalar("Loss/total_loss", loss, global_step)
+                tensorboard_writer.add_scalar("Loss/total_loss", float(loss), global_step)
+                tensorboard_writer.add_scalar("Train/learning_rate", optim.param_groups[0]["lr"], global_step)
+                tensorboard_writer.add_scalar(
+                    "Train/grad_norm",
+                    float(grad_norm) if isinstance(grad_norm, torch.Tensor) else grad_norm,
+                    global_step,
+                )
             # Collect stats
             if is_main:
                 infos.append(
@@ -649,9 +799,14 @@ def train_loop(config: _config.TrainConfig):
                     }
                 )
 
+            global_step += 1
+
+            if pbar is not None:
+                pbar.update(1)
+
             if is_main and (global_step % config.log_interval == 0):
-                
                 elapsed = time.time() - start_time
+                interval_steps = len(infos)
 
                 # Average stats over log interval
                 avg_loss = sum(info["loss"] for info in infos) / len(infos)
@@ -670,22 +825,66 @@ def train_loop(config: _config.TrainConfig):
                     else f"step={global_step} loss={avg_loss:.4f} lr={avg_lr:.2e} time={elapsed:.1f}s"
                 )
 
+                system_metrics = get_system_metrics(device)
+                if is_main and system_metrics:
+                    metrics_msg = ", ".join(
+                        [
+                            f"gpu_alloc={system_metrics['gpu_mem_allocated_gb']:.2f}GB",
+                            f"gpu_reserved={system_metrics['gpu_mem_reserved_gb']:.2f}GB",
+                        ]
+                        + (
+                            [
+                                f"cpu={system_metrics['cpu_percent']:.1f}%",
+                                f"cpu_mem={system_metrics['cpu_mem_percent']:.1f}%",
+                                f"rss={system_metrics['process_rss_gb']:.2f}GB",
+                            ]
+                            if "cpu_percent" in system_metrics
+                            else []
+                        )
+                    )
+                    logging.info(f"step={global_step} system {metrics_msg}")
+                    if rank == 0:
+                        for key, value in system_metrics.items():
+                            tensorboard_writer.add_scalar(f"System/{key}", value, global_step)
+
+                if metrics_artifacts is not None:
+                    metrics_row = {
+                        "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
+                        "global_step": global_step,
+                        "interval_steps": interval_steps,
+                        "elapsed_sec": elapsed,
+                        "time_per_step_sec": elapsed / max(1, interval_steps),
+                        "loss": avg_loss,
+                        "learning_rate": avg_lr,
+                        "grad_norm": avg_grad_norm if avg_grad_norm is not None else "",
+                        "gpu_mem_allocated_gb": system_metrics.get("gpu_mem_allocated_gb", ""),
+                        "gpu_mem_reserved_gb": system_metrics.get("gpu_mem_reserved_gb", ""),
+                        "gpu_mem_peak_allocated_gb": system_metrics.get("gpu_mem_peak_allocated_gb", ""),
+                        "gpu_mem_peak_reserved_gb": system_metrics.get("gpu_mem_peak_reserved_gb", ""),
+                        "cpu_percent": system_metrics.get("cpu_percent", ""),
+                        "cpu_mem_used_gb": system_metrics.get("cpu_mem_used_gb", ""),
+                        "cpu_mem_total_gb": system_metrics.get("cpu_mem_total_gb", ""),
+                        "cpu_mem_percent": system_metrics.get("cpu_mem_percent", ""),
+                        "process_rss_gb": system_metrics.get("process_rss_gb", ""),
+                    }
+                    append_metrics_row(metrics_artifacts, metrics_row)
+                    render_metrics_plot(metrics_artifacts)
+
                 # Log to wandb
                 if config.wandb_enabled and len(infos) > 0:
                     log_payload = {
                         "loss": avg_loss,
                         "learning_rate": avg_lr,
                         "step": global_step,
-                        "time_per_step": elapsed / config.log_interval,
+                        "time_per_step": elapsed / max(1, interval_steps),
                     }
                     if avg_grad_norm is not None:
                         log_payload["grad_norm"] = avg_grad_norm
+                    log_payload.update(system_metrics)
                     wandb.log(log_payload, step=global_step)
 
                 start_time = time.time()
                 infos = []  # Reset stats collection
-                pbar.update(config.log_interval)
-            global_step += 1
             # Save checkpoint using the new mechanism
             save_checkpoint(model, optim, global_step, config, is_main, data_config)
 
